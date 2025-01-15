@@ -53,3 +53,7 @@ dkms.conf
 
 # Swap Files
 *.swp
+
+# Mac
+.DS_Store
+*.DS_Store
