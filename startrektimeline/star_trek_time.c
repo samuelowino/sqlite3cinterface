@@ -5,7 +5,16 @@
 	* I might include a make file for linking or
 	* just a .sh file with the compile-link-run command
 **/
+
+// FUNCTION PROTOTYPES
+sqlite3* init_db();
+int create_tvshows_table_if_not_exist(sqlite3 *db);
 int main(){
+	sqlite3 *db = init_db();
+	int create_table_rc = create_tvshows_table_if_not_exist(db);
+	return 0;
+}
+sqlite3* init_db(){
 	// Initialize sqlite3 database 
 	// The SQLite3 database object is responsible for creating a connection
 	// to the database file and for executing SQL statements on the db
@@ -132,12 +141,179 @@ int main(){
 
 		int close_rc = sqlite3_close(db);
 		printf("Closing db with result code: %d\n", close_rc);
-		return rc;
+		return NULL;
 	} else {
 		printf("Open Database Successfully, can start reading/writing to db file");
-		int close_rc = sqlite3_close(db);
-		printf("Closing db with result code: %d\n", close_rc);
-		return 0;
+		return db;
 	}
 }
-
+int create_tvshows_table_if_not_exist(sqlite3 *db){
+	/*
+ 		* SQLite provides a C API for interacting with SQLite databases, which includes 
+ 		* preparing and executing SQL statements using the sqlite3_stmt interface. This 
+ 		* allows you to execute SQL statements and retrieve results programmatically in a 
+ 		* more efficient manner compared to running ad-hoc SQL queries directly.
+ 		*
+ 		* Key Concepts:
+ 		* 1. Database Connection (sqlite3):
+ 		*    You need to open a connection to the SQLite database.
+ 		* 
+ 		* 2. Prepared Statement (sqlite3_stmt):
+ 		*    A prepared statement is a SQL statement that is compiled and ready to be 
+ 		*    executed multiple times efficiently.
+ 		*
+ 		* 3. Executing Prepared Statements:
+ 		*    Use placeholders (?) instead of actual values, and bind parameters to these 
+ 		*    placeholders.
+ 		* 
+ 		* 4. Result Handling:
+ 		*    After execution, use functions to retrieve results from the statement (e.g., 
+ 		*    retrieving rows, numbers, text).
+ 	*/
+	sqlite3_stmt *create_stmt;
+	const char *create_sql = "CREATE TABLE tvshows ("
+                         "id INTEGER PRIMARY KEY, "
+                         "title TEXT, "
+                         "release_date TEXT, "
+                         "star_date TEXT, "
+                         "end_star_date TEXT);";
+	/*
+ 		* The function sqlite3_prepare_v2 is a crucial part of SQLite's C API, specifically 
+ 		* for preparing SQL statements for execution. It compiles a given SQL statement into 
+ 		* a bytecode representation, which is then executed by the SQLite engine. This allows 
+ 		* you to execute the same SQL statement multiple times with different parameters, 
+ 		* improving efficiency and security.
+ 		*
+ 		* Function Prototype:
+ 		* int sqlite3_prepare_v2(
+ 		*   sqlite3 *db,            // The database handle
+ 		*   const char *sql,        // The SQL statement
+ 		*   int nByte,              // The length of the SQL statement (or -1)
+ 		*   sqlite3_stmt **ppStmt,  // The prepared statement handle (output)
+ 		*   const char **pzTail     // Pointer to unused portion of the SQL (output)
+ 		* );
+ 		*
+ 		* Parameters:
+ 		* sqlite3 *db:
+ 		*   This is a pointer to the SQLite database object (sqlite3 *), which represents 
+ 		*   an open database connection. This connection is required to prepare SQL 
+ 		*   statements.
+ 		*
+ 		* const char *sql:
+ 		*   This is the SQL statement you want to prepare. It must be a string containing 
+ 		*   a valid SQL query. The query can contain placeholders (?) for parameters that 
+ 		*   you can bind later using functions like sqlite3_bind_*.
+ 		*
+ 		* int nByte:
+ 		*   This parameter specifies the number of bytes in the SQL query. If the SQL 
+ 		*   statement is a null-terminated string, you can pass -1, and SQLite will 
+ 		*   automatically calculate the length of the string using strlen().
+ 		*   If nByte is positive, it indicates the exact length of the SQL string, 
+ 		*   allowing for partial strings (e.g., if you're passing a portion of a larger query).
+ 		*
+ 		* sqlite3_stmt **ppStmt:
+ 		*   This is an output parameter that will receive the prepared statement object 
+ 		*   (sqlite3_stmt *). This object represents the compiled SQL statement that can 
+ 		*   be executed multiple times.
+ 		*   Once the statement is prepared, you can execute it using sqlite3_step() and 
+ 		*   retrieve the results.
+ 		*
+ 		* const char **pzTail:
+ 		*   This is an optional output parameter. If there are extra unused SQL statements 
+ 		*   after the first SQL statement (for example, multiple SQL statements in one 
+ 		*   string), this will point to the tail of the SQL string after the first statement.
+ 		*   If there is only one statement in the string, pzTail will be set to NULL.
+ 		*   If multiple SQL statements are provided, this can be used to identify and 
+ 		*   extract the remaining SQL commands for subsequent preparation.
+ 		*
+ 		* Return Value:
+ 		* - SQLITE_OK: Success (0).
+ 		* - SQLITE_ERROR: A generic error occurred, and sqlite3_errmsg() can be used to 
+ 		*   get the specific error message.
+ 		* - SQLITE_NOMEM: There was not enough memory to prepare the statement.
+ 		* - SQLITE_BUSY: The database is locked and is busy.
+ 		* - SQLITE_MISUSE: A programming error (e.g., calling this function with invalid arguments).
+ 		* - SQLITE_INTERNAL: An internal SQLite error.
+ 		*
+ 		* How sqlite3_prepare_v2 Works:
+ 		* - Parsing: SQLite parses the provided SQL string and checks it for syntax errors. 
+ 		*   If any errors are found, the function will return SQLITE_ERROR and set the 
+ 		*   appropriate error message.
+ 		* - Compilation: If no syntax errors are found, SQLite compiles the SQL query into 
+ 		*   an internal bytecode representation. This bytecode is an intermediate form that 
+ 		*   the SQLite engine can execute efficiently. The bytecode is stored in the 
+ 		*   sqlite3_stmt object returned in ppStmt.
+ 		* - Parameterization: If the SQL contains placeholders (e.g., ? for parameters), 
+ 		*   the prepared statement can be executed multiple times with different parameter 
+ 		*   values. You can later bind values to the placeholders using sqlite3_bind_* functions.
+ 		* - Memory Management: After preparation, the bytecode is stored in the memory for 
+ 		*   execution, and the original SQL string is no longer required. The prepared 
+ 		*   statement (sqlite3_stmt) must be finalized using sqlite3_finalize() when you 
+ 		*   are done with it.
+ 	*/
+	int prep_create_rc = sqlite3_prepare_v2(db,create_sql,-1,&create_stmt,0);
+	if (prep_create_rc != SQLITE_OK) {
+		printf("\nPrepare sql statement failed with error %s\nRC:%d\n", sqlite3_errmsg(db),prep_create_rc);
+		return prep_create_rc;
+	} else {
+		printf("\nPrepare sql statement successful, you can proceed to bind and exec the statement: RC%d\n",prep_create_rc);
+	}
+	/*
+ 		* The sqlite3_step function is a core part of the SQLite C API, responsible for 
+ 		* executing a prepared statement (sqlite3_stmt). It processes one "step" of the 
+ 		* SQL statement at a time. Depending on the statement type (e.g., SELECT, INSERT, 
+ 		* UPDATE, or DELETE), it may return results, affect rows in the database, or complete 
+ 		* execution.
+ 		*
+ 		* Function Prototype:
+ 		* int sqlite3_step(sqlite3_stmt *pStmt);
+ 		*
+ 		* Parameters:
+ 		* sqlite3_stmt *pStmt:
+ 		*   A pointer to a prepared statement object (sqlite3_stmt) that was previously 
+ 		*   created using sqlite3_prepare_v2.
+ 		*
+ 		* Return Values:
+ 		* The return values of sqlite3_step indicate the current status of the execution process. 
+ 		* Key return codes include:
+ 		*
+ 		* - SQLITE_ROW:
+ 		*   Indicates that a row of data is available (for SELECT statements).
+ 		*   You can retrieve column values from the current row using sqlite3_column_* functions 
+ 		*   (e.g., sqlite3_column_text, sqlite3_column_int). Call sqlite3_step again to move 
+ 		*   to the next row.
+ 		*
+ 		* - SQLITE_DONE:
+ 		*   Indicates that the SQL statement has completed execution.
+ 		*   For SELECT statements, this means there are no more rows to return.
+ 		*   For INSERT, UPDATE, and DELETE statements, this means the changes have been 
+ 		*   applied successfully.
+ 		*
+ 		* - SQLITE_BUSY:
+ 		*   Indicates that the database is locked, and the statement cannot proceed. This could 
+ 		*   happen if another process is accessing the database in a way that conflicts with 
+ 		*   the current statement. You may retry calling sqlite3_step after a short delay or 
+ 		*   resolve the contention.
+ 		*
+ 		* - SQLITE_ERROR:
+ 		*   A generic error occurred. Use sqlite3_errmsg to get the detailed error message.
+ 		*
+ 		* - SQLITE_MISUSE:
+ 		*   Indicates that the function was called incorrectly (e.g., using a statement after 
+ 		*   it has been finalized).
+ 		*
+ 		* - SQLITE_SCHEMA:
+ 		*   The database schema has changed. You must re-prepare the statement using 
+ 		*   sqlite3_prepare_v2.
+ 		*
+ 		* - SQLITE_NOMEM:
+ 		*   Insufficient memory to execute the statement.
+ 	*/
+	int exec_rc = sqlite3_step(create_stmt);
+	if (exec_rc == SQLITE_DONE) {
+		printf("\nTable created successfuly:RC%d",exec_rc);
+	} else {
+		printf("\nFailed to create table:RC%d, %s",exec_rc, sqlite3_errmsg(db));
+	}
+	return 0;
+}
