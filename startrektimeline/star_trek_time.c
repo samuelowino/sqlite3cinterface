@@ -9,9 +9,17 @@
 // FUNCTION PROTOTYPES
 sqlite3* init_db();
 int create_tvshows_table_if_not_exist(sqlite3 *db);
+int insert_tvshows(sqlite3 *db);
 int main(){
 	sqlite3 *db = init_db();
 	int create_table_rc = create_tvshows_table_if_not_exist(db);
+	printf("Create table result code:%d MSG: %s\n", create_table_rc, sqlite3_errmsg(db));
+	int close_rc = sqlite3_close(db);
+	if (close_rc == SQLITE_OK){
+		printf("Close database successful: rc %d\n", close_rc);
+	} else {
+		printf("Close database failed with error: rc %d, MSG: %s\n", close_rc, sqlite3_errmsg(db));
+	}
 	return 0;
 }
 sqlite3* init_db(){
@@ -171,7 +179,7 @@ int create_tvshows_table_if_not_exist(sqlite3 *db){
  		*    retrieving rows, numbers, text).
  	*/
 	sqlite3_stmt *create_stmt;
-	const char *create_sql = "CREATE TABLE tvshows ("
+	const char *create_sql = "CREATE TABLE IF NOT EXISTS tvshows ("
                          "id INTEGER PRIMARY KEY, "
                          "title TEXT, "
                          "release_date TEXT, "
@@ -253,8 +261,12 @@ int create_tvshows_table_if_not_exist(sqlite3 *db){
  	*/
 	int prep_create_rc = sqlite3_prepare_v2(db,create_sql,-1,&create_stmt,0);
 	if (prep_create_rc != SQLITE_OK) {
-		printf("\nPrepare sql statement failed with error %s\nRC:%d\n", sqlite3_errmsg(db),prep_create_rc);
-		return prep_create_rc;
+		if (prep_create_rc == 1) {
+			printf("\nAlready created table: rc %d MSG %s\n",prep_create_rc, sqlite3_errmsg(db));
+		} else {
+			printf("\nPrepare sql statement failed with error %s\nRC:%d\n", sqlite3_errmsg(db),prep_create_rc);
+			return prep_create_rc;
+		}
 	} else {
 		printf("\nPrepare sql statement successful, you can proceed to bind and exec the statement: RC%d\n",prep_create_rc);
 	}
@@ -311,9 +323,84 @@ int create_tvshows_table_if_not_exist(sqlite3 *db){
  	*/
 	int exec_rc = sqlite3_step(create_stmt);
 	if (exec_rc == SQLITE_DONE) {
-		printf("\nTable created successfuly:RC%d",exec_rc);
+		printf("\nTable created successfuly:RC%d\n",exec_rc);
 	} else {
-		printf("\nFailed to create table:RC%d, %s",exec_rc, sqlite3_errmsg(db));
+		printf("\nFailed to create table:RC%d, %s\n",exec_rc, sqlite3_errmsg(db));
 	}
+	/*
+ 		* The sqlite3_reset() function in SQLite is used to reset a prepared SQL
+ 		* statement back to its initial state, ready for reuse with different input
+ 		* values. It is an essential part of the SQLite statement lifecycle, especially
+ 		* when re-executing a statement in a loop or with different parameter bindings.
+ 		*
+ 		* Prototype:
+ 		*     int sqlite3_reset(sqlite3_stmt *stmt);
+ 		*
+ 		* Parameters:
+ 		*     stmt: A pointer to the prepared statement object (sqlite3_stmt) that you
+ 		*           want to reset.
+ 		*
+ 		* Return Value:
+ 		*     SQLITE_OK: The reset was successful.
+ 		*     Any other value indicates an error, typically related to issues
+ 		*     encountered during the last execution of the statement.
+ 		*
+ 		* Function Purpose:
+ 		*     When you prepare a statement using sqlite3_prepare_v2(), execute it with
+ 		*     sqlite3_step(), and want to execute it again, you need to:
+ 		*     
+ 		*     1. Call sqlite3_reset() to reset the internal state of the statement.
+ 		*     2. Optionally rebind new values to the parameters using sqlite3_bind_*.
+ 		*
+ 		*     sqlite3_reset() is necessary because it clears any result state left over
+ 		*     from the last execution. Without resetting, reusing the statement could
+ 		*     cause undefined behavior or errors.
+ 		*
+	*/
+	int reset_rc = sqlite3_reset(create_stmt);
+	if (reset_rc != SQLITE_OK) {
+		printf("\nFailed to reset stmt:rc %d MSG %s\n", reset_rc, sqlite3_errmsg(db));
+	} else {
+		printf("\nSQL Stmt reset was successful: rc %d\n", reset_rc);
+	}
+	/*
+ 		* The sqlite3_finalize() function in SQLite is used to destroy a prepared SQL
+ 		* statement object and release all associated resources. It marks the end of
+ 		* the lifecycle of a prepared statement.
+ 		*
+ 		* Prototype:
+ 		*     int sqlite3_finalize(sqlite3_stmt *stmt);
+ 		*
+ 		* Parameters:
+ 		*     stmt: A pointer to the prepared statement object (sqlite3_stmt) that you
+ 		*           want to finalize. If stmt is NULL, sqlite3_finalize() is a no-op
+ 		*           and returns SQLITE_OK.
+ 		*
+ 		* Return Value:
+ 		*     SQLITE_OK: The statement was successfully finalized.
+ 		*     Any other value indicates an error that was encountered during the last
+ 		*     execution of the statement.
+ 		*
+ 		* Purpose:
+ 		*     When you prepare a SQL statement using sqlite3_prepare_v2(), SQLite
+ 		*     allocates resources such as memory and execution context for the
+ 		*     statement. These resources remain allocated until the statement is
+ 		*     finalized with sqlite3_finalize().
+ 		*
+ 		*     The function:
+ 		*     - Frees all resources associated with the statement.
+ 		*     - Invalidates the sqlite3_stmt object, making it unusable.
+ 		*     - Ensures memory is properly managed, avoiding resource leaks.
+ 	*/
+	int fin_rc = sqlite3_finalize(create_stmt);
+	if (fin_rc == SQLITE_OK) {
+		printf("\nSQL statement clean up done...finalized with rc %d\n", fin_rc);
+	} else {
+		printf("\nFailed to finalized prepared statement: rc %d MSG %s\n", fin_rc, sqlite3_errmsg(db));
+		return fin_rc;
+	}
+	return 0;
+}
+int insert_tvshows(sqlite3 *db){
 	return 0;
 }
