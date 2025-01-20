@@ -475,7 +475,7 @@ int create_table_characters_if_not_exist(sqlite3 *db){
 		sqlite3_free(errmsg);
 		return rc;
 	}
-	printf("Created Charcacters table successful: rc %d\n", rc);
+	printf("Created Characters table successful: rc %d\n", rc);
 	sqlite3_free(errmsg);
 	return 0;
 }
