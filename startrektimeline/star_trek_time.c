@@ -10,10 +10,24 @@
 sqlite3* init_db();
 int create_tvshows_table_if_not_exist(sqlite3 *db);
 int insert_tvshows(sqlite3 *db);
+int create_table_characters_if_not_exist(sqlite3 *db);
 int main(){
 	sqlite3 *db = init_db();
 	int create_table_rc = create_tvshows_table_if_not_exist(db);
 	printf("Create table result code:%d MSG: %s\n", create_table_rc, sqlite3_errmsg(db));
+	int create_chars_table_rc = create_table_characters_if_not_exist(db);
+	printf(
+		"\n===============================================================\n"
+		"Transactions Summary\tResponse Code\n"
+		"===============================================================\n"
+		"Create Table TV Shows\t rc = %d\n"
+		"*****************************************************************\n"
+		"Create Table Characters\t rc = %d\n"
+		"*****************************************************************\n",
+		create_table_rc, 
+		create_chars_table_rc
+		);
+	//Done with Ops close db
 	int close_rc = sqlite3_close(db);
 	if (close_rc == SQLITE_OK){
 		printf("Close database successful: rc %d\n", close_rc);
@@ -402,5 +416,66 @@ int create_tvshows_table_if_not_exist(sqlite3 *db){
 	return 0;
 }
 int insert_tvshows(sqlite3 *db){
+	return 0;
+}
+int create_table_characters_if_not_exist(sqlite3 *db){
+	int rc = 0;
+	char *errmsg = 0;
+	const char *create_sql = "CREATE TABLE IF NOT EXISTS Show_Characters("
+					"id INT PRIMARY KEY," 
+					"name TEXT," 
+					"traits TEXT);";
+	/* 
+ 		* The sqlite3_exec function is a high-level convenience function provided 
+ 		* by the SQLite C library. It allows you to execute SQL statements directly 
+ 		* on an SQLite database connection. This function is particularly useful 
+ 		* for simple operations like creating tables, inserting data, or running 
+ 		* queries without needing to prepare and manage SQL statements explicitly.
+ 		* 
+ 		* Here’s a breakdown of how sqlite3_exec works:
+ 		* 
+ 		* Function Signature:
+ 		* int sqlite3_exec(
+ 		*   sqlite3 *db,                 // Database connection
+ 		*   const char *sql,             // SQL statement(s)
+ 		*   int (*callback)(void*,int,char**,char**), // Callback function
+ 		*   void *arg,                   // 1st argument to callback
+ 		*   char **errmsg                // Error message string
+ 		* );
+ 		* 
+ 		* Parameters:
+ 		* 
+ 		* sqlite3 *db
+ 		*   A pointer to the SQLite database connection object, created using sqlite3_open.
+ 		* 
+ 		* const char *sql
+ 		*   A string containing one or more SQL statements to be executed. 
+ 		*   Statements are separated by semicolons (;).
+ 		* 
+ 		* int (*callback)(void*, int, char**, char**)
+ 		*   A callback function that is called for each row in the result set 
+ 		*   (optional; NULL if not used).
+ 		*   - Arguments to the callback:
+ 		*     - void*: Pointer to the user-defined data (passed via arg).
+ 		*     - int: Number of columns in the result set.
+ 		*     - char**: Array of strings representing column values.
+ 		*     - char**: Array of strings representing column names.
+ 		* 
+ 		* void *arg
+ 		*   A pointer to user data passed to the callback. If no data is needed, pass NULL.
+ 		* 
+ 		* char **errmsg
+ 		*   A pointer to a string that will be set to an error message if an error occurs. 
+ 		*   If you don't need the error message, you can pass NULL. Otherwise, remember to 
+ 		*   free the error message using sqlite3_free when done.
+ 	*/
+	rc = sqlite3_exec(db,create_sql,0,0,&errmsg);
+	if (rc != SQLITE_OK) {
+		printf("Failed to create table Show_Characters: rc %d : MSG %s\n",rc,errmsg);
+		sqlite3_free(errmsg);
+		return rc;
+	}
+	printf("Created Charcacters table successful: rc %d\n", rc);
+	sqlite3_free(errmsg);
 	return 0;
 }
