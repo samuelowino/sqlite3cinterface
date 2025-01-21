@@ -1,4 +1,10 @@
 # HP API Local SQLite Mapper
+
+# ToolKit
+ C-lang   - Language
+ SQLite3  - Persistence
+ libCurl  - Networking
+
 # Automate Local Mapping of Harry Potter API Database
 
 > 🔗 https://hp-api.onrender.com
