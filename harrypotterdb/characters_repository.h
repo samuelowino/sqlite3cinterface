@@ -1,7 +1,7 @@
 # ifndef character_repository.h
 # define character_repository.h
 
-# define table_name = "All_Characters";
+# define CHARACTERS_TABLE  = "All_Characters";
 
 /*
 	* Create the sqlite databas table for characters
