@@ -1,9 +1,10 @@
 # HP API Local SQLite Mapper
 
 # ToolKit
- C-lang   - Language
- SQLite3  - Persistence
- libCurl  - Networking
+ > C-lang   - Language
+ > SQLite3  - Persistence
+ > libCurl  - Networking
+ > SDL3     - UI, Graphics and Animations
 
 # Automate Local Mapping of Harry Potter API Database
 
